@@ -223,8 +223,9 @@ class TestUserAgentRotation:
 # ---------------------------------------------------------------------------
 
 class TestQualityMap:
-    """Verify that the _QUALITY_MAP format strings don't restrict video
-    extension to MP4 — doing so blocks YouTube's 1080p+ WebM/VP9 streams."""
+    """Verify that the _QUALITY_MAP format strings prefer iOS-compatible
+    H.264 video and that the downloader opts include the FFmpegVideoConvertor
+    postprocessor so the final file is always playable in the iOS Photos app."""
 
     def _get_quality_map(self):
         from app.services.downloader import _QUALITY_MAP
@@ -238,21 +239,20 @@ class TestQualityMap:
                 f"Quality '{key}' has an empty or non-string format value"
             )
 
-    def test_video_selectors_do_not_restrict_to_mp4(self) -> None:
-        """bestvideo selectors must not carry [ext=mp4] so WebM/VP9 streams
-        are eligible on YouTube."""
+    def test_primary_video_selectors_prefer_h264(self) -> None:
+        """Primary (first-preference) bestvideo selectors must request the
+        H.264 (vcodec^=avc) codec so the downloaded file is natively
+        compatible with the iOS Photos app."""
         qmap = self._get_quality_map()
         for quality, fmt in qmap.items():
-            if quality == "audio":
-                continue  # audio-only format has no video selector
-            # Split on '/' to inspect each fallback segment individually
-            for segment in fmt.split("/"):
-                if "bestvideo" in segment:
-                    assert "[ext=mp4]" not in segment, (
-                        f"Quality '{quality}' segment '{segment}' "
-                        "restricts bestvideo to ext=mp4, which blocks "
-                        "YouTube's WebM/VP9 1080p+ streams"
-                    )
+            if quality in ("audio", "worst"):
+                continue  # no H.264 requirement for audio-only or worst
+            primary = fmt.split("/")[0]
+            if "bestvideo" in primary:
+                assert "vcodec^=avc" in primary, (
+                    f"Quality '{quality}' primary segment '{primary}' "
+                    "does not prefer H.264 (vcodec^=avc) for iOS compatibility"
+                )
 
     def test_format_strings_use_video_audio_merge(self) -> None:
         """Primary (first-preference) segment for high-quality tiers must
@@ -264,3 +264,28 @@ class TestQualityMap:
                 f"Quality '{quality}' primary segment '{primary}' does not "
                 "merge video+audio streams"
             )
+
+    def test_ydl_opts_include_ffmpeg_video_convertor(self) -> None:
+        """_build_ydl_opts must include the FFmpegVideoConvertor postprocessor
+        for non-audio downloads so the server always produces an iOS-compatible
+        H.264 MP4 file."""
+        from app.services.downloader import _build_ydl_opts
+
+        opts = _build_ydl_opts(
+            job_id="test-ios-pp",
+            quality="best",
+            audio_only=False,
+            platform=None,
+            cookies_content=None,
+            progress_hook=lambda d: None,
+        )
+        postprocessors = opts.get("postprocessors", [])
+        pp_keys = [pp.get("key") for pp in postprocessors]
+        assert "FFmpegVideoConvertor" in pp_keys, (
+            "FFmpegVideoConvertor postprocessor is missing from ydl opts; "
+            "downloads may not be iOS Photos-compatible"
+        )
+        convertor = next(pp for pp in postprocessors if pp.get("key") == "FFmpegVideoConvertor")
+        assert convertor.get("preferedformat") == "mp4", (
+            "FFmpegVideoConvertor must target 'mp4' format for iOS compatibility"
+        )

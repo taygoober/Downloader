@@ -21,16 +21,19 @@ logger = logging.getLogger(__name__)
 DOWNLOADS_DIR = Path(os.environ.get("DOWNLOADS_DIR", "/app/downloads"))
 
 # Quality map: human-friendly label -> yt-dlp format selector
-# Note: [ext=mp4] is intentionally omitted from bestvideo selectors because
-# YouTube serves 1080p+ streams primarily as WebM/VP9, not MP4.  ffmpeg
-# (installed in the container) merges the separate video+audio streams and
-# merge_output_format="mp4" ensures the final file is always an MP4.
+# Primary segments prefer H.264 (vcodec^=avc) video in an MP4 container
+# paired with M4A audio so that the merged file is natively compatible with
+# the iOS Photos app.  Fallback segments (after "/") allow any codec so that
+# downloads still succeed when an H.264 stream is unavailable; the
+# FFmpegVideoConvertor postprocessor then re-muxes/converts the result to a
+# proper MP4.  merge_output_format="mp4" ensures the final container is
+# always MP4 regardless of which fallback was chosen.
 _QUALITY_MAP = {
-    "best": "bestvideo+bestaudio/best",
-    "1080p": "bestvideo[height<=1080]+bestaudio/best[height<=1080]",
-    "720p": "bestvideo[height<=720]+bestaudio/best[height<=720]",
-    "480p": "bestvideo[height<=480]+bestaudio/best[height<=480]",
-    "360p": "bestvideo[height<=360]+bestaudio/best[height<=360]",
+    "best": "bestvideo[ext=mp4][vcodec^=avc]+bestaudio[ext=m4a]/bestvideo+bestaudio/best",
+    "1080p": "bestvideo[ext=mp4][vcodec^=avc][height<=1080]+bestaudio[ext=m4a]/bestvideo[height<=1080]+bestaudio/best[height<=1080]",
+    "720p": "bestvideo[ext=mp4][vcodec^=avc][height<=720]+bestaudio[ext=m4a]/bestvideo[height<=720]+bestaudio/best[height<=720]",
+    "480p": "bestvideo[ext=mp4][vcodec^=avc][height<=480]+bestaudio[ext=m4a]/bestvideo[height<=480]+bestaudio/best[height<=480]",
+    "360p": "bestvideo[ext=mp4][vcodec^=avc][height<=360]+bestaudio[ext=m4a]/bestvideo[height<=360]+bestaudio/best[height<=360]",
     "worst": "worstvideo+worstaudio/worst",
     "audio": "bestaudio/best",
 }
@@ -94,13 +97,23 @@ def _build_ydl_opts(
         "noplaylist": True,
     }
 
-    # Add postprocessors for audio-only mode
+    # Add postprocessors
     if audio_only:
         opts["postprocessors"] = [
             {
                 "key": "FFmpegExtractAudio",
                 "preferredcodec": "m4a",
                 "preferredquality": "192",
+            }
+        ]
+    else:
+        # Convert to MP4 as a safety net so the file is always playable in
+        # the iOS Photos app, even when the fallback format selector chose a
+        # VP9 or AV1 stream that was merged into the MP4 container.
+        opts["postprocessors"] = [
+            {
+                "key": "FFmpegVideoConvertor",
+                "preferedformat": "mp4",
             }
         ]
 
