@@ -216,3 +216,51 @@ class TestUserAgentRotation:
         agents = {get_random_user_agent() for _ in range(50)}
         # We have ≥8 desktop UAs; over 50 calls we expect variety
         assert len(agents) > 1
+
+
+# ---------------------------------------------------------------------------
+# Quality map format strings
+# ---------------------------------------------------------------------------
+
+class TestQualityMap:
+    """Verify that the _QUALITY_MAP format strings don't restrict video
+    extension to MP4 — doing so blocks YouTube's 1080p+ WebM/VP9 streams."""
+
+    def _get_quality_map(self):
+        from app.services.downloader import _QUALITY_MAP
+        return _QUALITY_MAP
+
+    def test_all_expected_qualities_present(self) -> None:
+        qmap = self._get_quality_map()
+        for key in ("best", "1080p", "720p", "480p", "360p", "worst", "audio"):
+            assert key in qmap, f"Missing quality key: {key}"
+            assert isinstance(qmap[key], str) and qmap[key], (
+                f"Quality '{key}' has an empty or non-string format value"
+            )
+
+    def test_video_selectors_do_not_restrict_to_mp4(self) -> None:
+        """bestvideo selectors must not carry [ext=mp4] so WebM/VP9 streams
+        are eligible on YouTube."""
+        qmap = self._get_quality_map()
+        for quality, fmt in qmap.items():
+            if quality == "audio":
+                continue  # audio-only format has no video selector
+            # Split on '/' to inspect each fallback segment individually
+            for segment in fmt.split("/"):
+                if "bestvideo" in segment:
+                    assert "[ext=mp4]" not in segment, (
+                        f"Quality '{quality}' segment '{segment}' "
+                        "restricts bestvideo to ext=mp4, which blocks "
+                        "YouTube's WebM/VP9 1080p+ streams"
+                    )
+
+    def test_format_strings_use_video_audio_merge(self) -> None:
+        """Primary (first-preference) segment for high-quality tiers must
+        combine separate video+audio streams so ffmpeg can merge them."""
+        for quality in ("best", "1080p", "720p", "480p", "360p"):
+            fmt = self._get_quality_map()[quality]
+            primary = fmt.split("/")[0]
+            assert "+" in primary, (
+                f"Quality '{quality}' primary segment '{primary}' does not "
+                "merge video+audio streams"
+            )
