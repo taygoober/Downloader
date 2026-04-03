@@ -22,12 +22,16 @@ logger = logging.getLogger(__name__)
 DOWNLOADS_DIR = Path(os.environ.get("DOWNLOADS_DIR", "/app/downloads"))
 
 # Quality map: human-friendly label -> yt-dlp format selector
+# Note: [ext=mp4] is intentionally omitted from bestvideo selectors because
+# YouTube serves 1080p+ streams primarily as WebM/VP9, not MP4.  ffmpeg
+# (installed in the container) merges the separate video+audio streams and
+# merge_output_format="mp4" ensures the final file is always an MP4.
 _QUALITY_MAP = {
-    "best": "bestvideo[ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]/best",
-    "1080p": "bestvideo[height<=1080][ext=mp4]+bestaudio[ext=m4a]/best[height<=1080][ext=mp4]/best[height<=1080]",
-    "720p": "bestvideo[height<=720][ext=mp4]+bestaudio[ext=m4a]/best[height<=720][ext=mp4]/best[height<=720]",
-    "480p": "bestvideo[height<=480][ext=mp4]+bestaudio[ext=m4a]/best[height<=480][ext=mp4]/best[height<=480]",
-    "360p": "bestvideo[height<=360][ext=mp4]+bestaudio[ext=m4a]/best[height<=360][ext=mp4]/best[height<=360]",
+    "best": "bestvideo+bestaudio[ext=m4a]/bestvideo+bestaudio/best",
+    "1080p": "bestvideo[height<=1080]+bestaudio[ext=m4a]/bestvideo[height<=1080]+bestaudio/best[height<=1080]",
+    "720p": "bestvideo[height<=720]+bestaudio[ext=m4a]/bestvideo[height<=720]+bestaudio/best[height<=720]",
+    "480p": "bestvideo[height<=480]+bestaudio[ext=m4a]/bestvideo[height<=480]+bestaudio/best[height<=480]",
+    "360p": "bestvideo[height<=360]+bestaudio[ext=m4a]/bestvideo[height<=360]+bestaudio/best[height<=360]",
     "worst": "worstvideo+worstaudio/worst",
     "audio": "bestaudio[ext=m4a]/bestaudio",
 }
