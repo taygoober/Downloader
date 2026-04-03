@@ -15,7 +15,6 @@ from typing import Callable, Optional
 import yt_dlp
 
 from app.utils.platform import detect_platform
-from app.utils.user_agents import get_random_user_agent
 
 logger = logging.getLogger(__name__)
 
@@ -42,7 +41,10 @@ _PLATFORM_OPTIONS: dict[str, dict] = {
         "sleep_interval": 2,
         "max_sleep_interval": 5,
         "sleep_interval_requests": 1,
-        "extractor_args": {"youtube": {"player_client": ["web", "android"]}},
+        # android_vr provides full 1080p/4K format lists without requiring a
+        # JS runtime (unlike the "web" client).  "android" is kept as a
+        # secondary fallback for non-VR capable regions.
+        "extractor_args": {"youtube": {"player_client": ["android_vr", "android"]}},
     },
     "instagram": {
         "sleep_interval": 3,
@@ -80,13 +82,6 @@ def _build_ydl_opts(
         "quiet": True,
         "no_warnings": True,
         "progress_hooks": [progress_hook],
-        "http_headers": {
-            "User-Agent": get_random_user_agent(),
-            "Accept-Language": "en-US,en;q=0.9",
-            "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8",
-            "DNT": "1",
-            "Upgrade-Insecure-Requests": "1",
-        },
         "retries": 5,
         "fragment_retries": 10,
         "file_access_retries": 5,
