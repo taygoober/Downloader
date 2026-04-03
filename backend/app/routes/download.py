@@ -7,7 +7,7 @@ from pathlib import Path
 from typing import List
 
 from fastapi import APIRouter, HTTPException, Request
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, Response
 
 from app.models.schemas import DownloadRequest, JobResponse, JobStatus
 from app.services.job_manager import job_manager
@@ -82,7 +82,7 @@ async def download_file(job_id: str) -> FileResponse:
     )
 
 
-@router.delete("/jobs/{job_id}", status_code=204, tags=["Downloads"])
+@router.delete("/jobs/{job_id}", status_code=204, response_class=Response, response_model=None, tags=["Downloads"])
 async def delete_job(job_id: str) -> None:
     """Delete a job and its downloaded file."""
     deleted = job_manager.delete_job(job_id)
