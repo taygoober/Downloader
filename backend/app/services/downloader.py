@@ -27,13 +27,13 @@ DOWNLOADS_DIR = Path(os.environ.get("DOWNLOADS_DIR", "/app/downloads"))
 # (installed in the container) merges the separate video+audio streams and
 # merge_output_format="mp4" ensures the final file is always an MP4.
 _QUALITY_MAP = {
-    "best": "bestvideo+bestaudio[ext=m4a]/bestvideo+bestaudio/best",
-    "1080p": "bestvideo[height<=1080]+bestaudio[ext=m4a]/bestvideo[height<=1080]+bestaudio/best[height<=1080]",
-    "720p": "bestvideo[height<=720]+bestaudio[ext=m4a]/bestvideo[height<=720]+bestaudio/best[height<=720]",
-    "480p": "bestvideo[height<=480]+bestaudio[ext=m4a]/bestvideo[height<=480]+bestaudio/best[height<=480]",
-    "360p": "bestvideo[height<=360]+bestaudio[ext=m4a]/bestvideo[height<=360]+bestaudio/best[height<=360]",
+    "best": "bestvideo+bestaudio/best",
+    "1080p": "bestvideo[height<=1080]+bestaudio/best[height<=1080]",
+    "720p": "bestvideo[height<=720]+bestaudio/best[height<=720]",
+    "480p": "bestvideo[height<=480]+bestaudio/best[height<=480]",
+    "360p": "bestvideo[height<=360]+bestaudio/best[height<=360]",
     "worst": "worstvideo+worstaudio/worst",
-    "audio": "bestaudio[ext=m4a]/bestaudio",
+    "audio": "bestaudio/best",
 }
 
 # Per-platform tweaks
