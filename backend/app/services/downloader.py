@@ -29,12 +29,13 @@ DOWNLOADS_DIR = Path(os.environ.get("DOWNLOADS_DIR", "/app/downloads"))
 # proper MP4.  merge_output_format="mp4" ensures the final container is
 # always MP4 regardless of which fallback was chosen.
 _QUALITY_MAP = {
-    "best": "bestvideo[ext=mp4][vcodec^=avc]+bestaudio[ext=m4a]/bestvideo+bestaudio/best",
-    "1080p": "bestvideo[ext=mp4][vcodec^=avc][height<=1080]+bestaudio[ext=m4a]/bestvideo[height<=1080]+bestaudio/best[height<=1080]",
-    "720p": "bestvideo[ext=mp4][vcodec^=avc][height<=720]+bestaudio[ext=m4a]/bestvideo[height<=720]+bestaudio/best[height<=720]",
-    "480p": "bestvideo[ext=mp4][vcodec^=avc][height<=480]+bestaudio[ext=m4a]/bestvideo[height<=480]+bestaudio/best[height<=480]",
-    "360p": "bestvideo[ext=mp4][vcodec^=avc][height<=360]+bestaudio[ext=m4a]/bestvideo[height<=360]+bestaudio/best[height<=360]",
-    "worst": "worstvideo+worstaudio/worst",
+    # Remove the generic /bestvideo+bestaudio/best fallback so it forces an iOS-compatible codec
+    "best": "bestvideo[ext=mp4][vcodec^=avc]+bestaudio[ext=m4a]/best[ext=mp4][vcodec^=avc]",
+    "1080p": "bestvideo[ext=mp4][vcodec^=avc][height<=1080]+bestaudio[ext=m4a]/best[ext=mp4][vcodec^=avc][height<=1080]",
+    "720p": "bestvideo[ext=mp4][vcodec^=avc][height<=720]+bestaudio[ext=m4a]/best[ext=mp4][vcodec^=avc][height<=720]",
+    "480p": "bestvideo[ext=mp4][vcodec^=avc][height<=480]+bestaudio[ext=m4a]/best[ext=mp4][vcodec^=avc][height<=480]",
+    "360p": "bestvideo[ext=mp4][vcodec^=avc][height<=360]+bestaudio[ext=m4a]/best[ext=mp4][vcodec^=avc][height<=360]",
+    "worst": "worstvideo[vcodec^=avc]+worstaudio/worst",
     "audio": "bestaudio/best",
 }
 
