@@ -23,18 +23,13 @@ DOWNLOADS_DIR = Path(os.environ.get("DOWNLOADS_DIR", "/app/downloads"))
 # Quality map: human-friendly label -> yt-dlp format selector
 # Primary segments prefer H.264 (vcodec^=avc) video in an MP4 container
 # paired with M4A audio so that the merged file is natively compatible with
-# the iOS Photos app.  Fallback segments (after "/") allow any codec so that
-# downloads still succeed when an H.264 stream is unavailable; the
-# FFmpegVideoConvertor postprocessor then re-muxes/converts the result to a
-# proper MP4.  merge_output_format="mp4" ensures the final container is
-# always MP4 regardless of which fallback was chosen.
+# the iOS Photos app. Fallback segments allow for normal mp4 if strict codecs aren't tagged.
 _QUALITY_MAP = {
-    # Remove the generic /bestvideo+bestaudio/best fallback so it forces an iOS-compatible codec
-    "best": "bestvideo[ext=mp4][vcodec^=avc]+bestaudio[ext=m4a]/best[ext=mp4][vcodec^=avc]",
-    "1080p": "bestvideo[ext=mp4][vcodec^=avc][height<=1080]+bestaudio[ext=m4a]/best[ext=mp4][vcodec^=avc][height<=1080]",
-    "720p": "bestvideo[ext=mp4][vcodec^=avc][height<=720]+bestaudio[ext=m4a]/best[ext=mp4][vcodec^=avc][height<=720]",
-    "480p": "bestvideo[ext=mp4][vcodec^=avc][height<=480]+bestaudio[ext=m4a]/best[ext=mp4][vcodec^=avc][height<=480]",
-    "360p": "bestvideo[ext=mp4][vcodec^=avc][height<=360]+bestaudio[ext=m4a]/best[ext=mp4][vcodec^=avc][height<=360]",
+    "best": "bestvideo[ext=mp4][vcodec^=avc]+bestaudio[ext=m4a]/best[ext=mp4][vcodec^=avc]/best[ext=mp4]/best",
+    "1080p": "bestvideo[ext=mp4][vcodec^=avc][height<=1080]+bestaudio[ext=m4a]/best[ext=mp4][vcodec^=avc][height<=1080]/best[ext=mp4][height<=1080]/best[height<=1080]",
+    "720p": "bestvideo[ext=mp4][vcodec^=avc][height<=720]+bestaudio[ext=m4a]/best[ext=mp4][vcodec^=avc][height<=720]/best[ext=mp4][height<=720]/best[height<=720]",
+    "480p": "bestvideo[ext=mp4][vcodec^=avc][height<=480]+bestaudio[ext=m4a]/best[ext=mp4][vcodec^=avc][height<=480]/best[ext=mp4][height<=480]/best[height<=480]",
+    "360p": "bestvideo[ext=mp4][vcodec^=avc][height<=360]+bestaudio[ext=m4a]/best[ext=mp4][vcodec^=avc][height<=360]/best[ext=mp4][height<=360]/best[height<=360]",
     "worst": "worstvideo[vcodec^=avc]+worstaudio/worst",
     "audio": "bestaudio/best",
 }
