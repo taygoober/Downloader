@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import logging
 import os
+import urllib.parse
 from pathlib import Path
 from typing import List
 
@@ -74,11 +75,15 @@ async def download_file(job_id: str) -> FileResponse:
         raise HTTPException(status_code=404, detail="File not found on server")
 
     media_type = "audio/mp4" if job.audio_only else "video/mp4"
+    
+    # URL encode the filename to handle emojis and special characters in the Content-Disposition header
+    encoded_filename = urllib.parse.quote(job.filename)
+    
     return FileResponse(
         path=job.file_path,
         filename=job.filename,
         media_type=media_type,
-        headers={"Content-Disposition": f'attachment; filename="{job.filename}"'},
+        headers={"Content-Disposition": f"attachment; filename*=UTF-8''{encoded_filename}"},
     )
 
 
